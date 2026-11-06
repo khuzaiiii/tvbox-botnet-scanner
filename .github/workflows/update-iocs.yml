@@ -4,17 +4,27 @@ name: Update IOCs
 # human to review. Nothing is merged automatically.
 #
 # Setup (repository Settings):
-#   Secrets  > THREATFOX_AUTH_KEY  free key from https://auth.abuse.ch/
-#   Variables > THREATFOX_TAGS     space-separated "tag:file" pairs, e.g.
-#                                  "SomeTag:vo1d.json OtherTag:badbox2.json"
-#              Check each tag on https://threatfox.abuse.ch/browse/ first: tags are free text,
-#              and a wrong one pulls in unrelated malware.
+#   Secrets   > THREATFOX_AUTH_KEY  free key from https://auth.abuse.ch/
+#   Variables > THREATFOX_TAGS      space-separated "tag:file" or "tag:file:malware" entries, e.g.
+#                                   "Vo1d:vo1d.json BADBOX:badbox2.json:badbox"
+#               The optional third part keeps only entries whose ThreatFox malware name contains it.
+#               Run tools/update_iocs.py --dry-run for each tag first: tags are free text, and a
+#               wrong one pulls in unrelated malware.
 #   Actions > General > "Allow GitHub Actions to create and approve pull requests"
 
 on:
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Entries to fetch, same format as THREATFOX_TAGS (empty: use the variable)'
+        required: false
+        default: ""
+      dry_run:
+        description: "Only list what would be added (no pull request)"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -23,7 +33,10 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    if: vars.THREATFOX_TAGS != ''
+    if: vars.THREATFOX_TAGS != '' || inputs.tags != ''
+    env:
+      THREATFOX_TAGS: ${{ inputs.tags || vars.THREATFOX_TAGS }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -32,21 +45,26 @@ jobs:
       - name: Fetch from ThreatFox
         env:
           THREATFOX_AUTH_KEY: ${{ secrets.THREATFOX_AUTH_KEY }}
-          THREATFOX_TAGS: ${{ vars.THREATFOX_TAGS }}
         run: |
-          for pair in $THREATFOX_TAGS; do
-            tag="${pair%%:*}"; file="${pair#*:}"
-            case "$file" in */*|..*) echo "bad file name: $file"; exit 1;; esac
-            python tools/update_iocs.py --tag "$tag" --file "src/tvbox_scanner/data/iocs/$file"
+          : > "$RUNNER_TEMP/summary.txt"
+          for entry in $THREATFOX_TAGS; do
+            IFS=: read -r tag file malware <<< "$entry"
+            case "$file" in ""|*/*|.*) echo "bad file name in THREATFOX_TAGS: '$file'"; exit 1;; esac
+            set -- --tag "$tag" --file "src/tvbox_scanner/data/iocs/$file"
+            if [ -n "$malware" ]; then set -- "$@" --malware "$malware"; fi
+            if [ "$DRY_RUN" = true ]; then set -- "$@" --dry-run; fi
+            python tools/update_iocs.py "$@" | tee -a "$RUNNER_TEMP/summary.txt"
           done
+          { echo '```'; cat "$RUNNER_TEMP/summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Check the files still load
+        if: env.DRY_RUN != 'true'
         run: |
           python -m pip install -e .
           python -m unittest discover -s tests
       - name: Open pull request
+        if: env.DRY_RUN != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          THREATFOX_TAGS: ${{ vars.THREATFOX_TAGS }}
         run: |
           if git diff --quiet; then echo "No new IOCs."; exit 0; fi
           branch="ioc-update-$(date +%Y%m%d)"
@@ -55,8 +73,14 @@ jobs:
           git switch -c "$branch"
           git commit -am "Update IOCs from ThreatFox"
           git push -u origin "$branch"
-          gh pr create --title "Update IOCs from ThreatFox ($(date +%Y-%m-%d))" --body \
-            "Automated weekly pull from ThreatFox tags: \`$THREATFOX_TAGS\`.
-
-          Before merging, spot-check new entries on threatfox.abuse.ch. Shared hosting or CDN IPs and domains
-          would flag innocent boxes and end up in people's block lists."
+          {
+            echo "Automated weekly pull from ThreatFox. Tags: \`$THREATFOX_TAGS\`"
+            echo
+            echo "Before merging, spot-check new entries on threatfox.abuse.ch. Shared hosting or CDN IPs and"
+            echo "domains would flag innocent boxes and end up in people's block lists."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/summary.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --title "Update IOCs from ThreatFox ($(date +%Y-%m-%d))" --body-file "$RUNNER_TEMP/body.md"
