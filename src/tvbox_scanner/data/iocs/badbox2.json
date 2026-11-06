@@ -2,7 +2,8 @@
   "family": "BADBOX 2.0",
   "sources": [
     "https://github.com/deepfield/public-research/tree/854e703/ipmoyu",
-    "https://www.humansecurity.com/learn/blog/satori-threat-intelligence-disruption-badbox-2-0/"
+    "https://www.humansecurity.com/learn/blog/satori-threat-intelligence-disruption-badbox-2-0/",
+    "https://threatfox.abuse.ch/"
   ],
   "packages": [
     {
@@ -53,6 +54,7 @@
     "a1.vrr8345.site",
     "a1.xmsae.sbs",
     "a1.xshaon123.sbs",
+    "api.kookjar.com",
     "appdload.mpfcms.com",
     "edisajalsjfdfh.shop",
     "mcm5566.bookabcgames.com",

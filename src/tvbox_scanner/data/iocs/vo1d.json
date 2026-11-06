@@ -3,7 +3,8 @@
   "sources": [
     "https://github.com/DoctorWebLtd/malware-iocs/blob/d0d45c4/Android.Vo1d/README.adoc",
     "https://habr.com/ru/articles/842848",
-    "https://www.bleepingcomputer.com/news/security/new-vo1d-malware-infects-13-million-android-streaming-boxes/"
+    "https://www.bleepingcomputer.com/news/security/new-vo1d-malware-infects-13-million-android-streaming-boxes/",
+    "https://threatfox.abuse.ch/"
   ],
   "packages": [
     {
@@ -113,11 +114,28 @@
     "6f33933ce4a5c0e1b32fea736a61351a.com",
     "bitemores.com",
     "catmos99.com",
+    "gecsge4e1e5427f8.com",
     "meiboot.com"
   ],
-  "ips": [],
+  "ips": [
+    "38.46.218.34",
+    "38.46.218.36",
+    "38.46.218.38",
+    "38.46.218.39",
+    "38.97.63.242",
+    "38.97.63.243"
+  ],
   "device_models": [
     "R4",
     "KJ-SMART4KVIP"
-  ]
+  ],
+  "_excluded": {
+    "_note": "Rejected in review: Amazon AWS addresses from ThreatFox. Cloud IPs get reassigned to other customers, so they would later flag clean boxes and block innocent services. tools/update_iocs.py skips these.",
+    "ips": [
+      "3.132.75.97",
+      "3.146.93.253",
+      "52.14.24.94",
+      "52.15.213.182"
+    ]
+  }
 }
