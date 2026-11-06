@@ -123,6 +123,10 @@ Then ask for the box's IP address (Settings → Network → the connected networ
 - Read `reports/scan.json`. Tell the person, in plain words: the `verdict`, each finding with severity
   `HIGH` or `CRITICAL`, and whether the scan ran with root (`"root": true`). Without root, files under
   `/data/system` can't be seen, so say the scan was partial.
+- Findings from the `heuristics` and `crosscheck` scanners match no known IOC. They are at most `MEDIUM`, can
+  be false alarms, and are never removed by this tool. Describe them as "worth a look", not as malware.
+- If the person wants to post the report publicly (forum, issue), rerun with `--redact`: it masks LAN IPs and
+  proxy settings.
 - **Check**: `reports/scan.json` exists and has a `verdict`.
 
 If the person prefers to click through it themselves, tell them to run `tvbox-scan ui` in their own terminal
@@ -158,8 +162,10 @@ Only if the verdict is `infected_removable`, `infected_firmware` or `suspicious`
 - Ask, then: `adb -s <serial> reboot`. Wait until the person says the box is back on the home screen, then
   `adb connect <ip>:5555` again if they use Wi-Fi.
 - `tvbox-scan -s <serial> scan --json reports/after.json`
-- Compare with `reports/scan.json`. If findings came back, the loader lives where this tool can't clean it:
-  say so, and recommend clean firmware from the maker or a different box.
+- `tvbox-scan compare reports/scan.json reports/after.json`
+  It lists findings that are gone, still there, or new. Exit code 1 means a `HIGH`/`CRITICAL` finding remains
+  or came back: the loader lives where this tool can't clean it. Say so, and recommend clean firmware from the
+  maker or a different box. Exit code 0 still isn't "clean": say no *known* sign matched.
 - Offer a block list for their router, Pi-hole or AdGuard Home (blocks the botnet's servers even when the
   malware can't be removed): `tvbox-scan export-blocklist --format domains > blocklist.txt`. Note: the shipped
   list may be short; it only holds indicators from public sources.

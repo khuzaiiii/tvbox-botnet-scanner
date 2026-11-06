@@ -113,11 +113,19 @@ class DemoBox:
             return f"{VO1D_SHA1}  /system/xbin/vo1d\n"
         if command.startswith("stat -c"):
             return "755 0 2000 regular file\n"
+        if command == "pm list packages -3":
+            return "".join(f"package:{n}\n" for n, p in self.packages.items() if p.startswith("/data/"))
+        if command == "ls /proc":
+            return "\n".join(["1", "301", "455", *self.procs, "self", "net"]) + "\n"
+        if command.startswith("for p in /proc/"):
+            exes = {"1": "/system/bin/init", "301": "/system/bin/surfaceflinger", "455": "/system/bin/app_process32"}
+            return "".join(f"{pid} {exe}\n" for pid, exe in {**exes, **self.procs}.items())
         if command == "ps -A -o PID,NAME 2>/dev/null":
             base = "  PID NAME\n    1 init\n  301 surfaceflinger\n  455 system_server\n"
             return base + "".join(f"  {pid} {name}\n" for pid, name in self.procs.items())
         if command == "cat /proc/net/tcp 2>/dev/null":
-            rows = "  sl  local_address rem_address   st\n   0: 3201A8C0:9C40 0101A8C0:0035 06 0\n"
+            rows = ("  sl  local_address rem_address   st\n   0: 3201A8C0:9C40 0101A8C0:0035 06 0\n"
+                    "   1: 00000000:15B3 00000000:0000 0A 0\n")  # network ADB on 5555, as when scanning over Wi-Fi
             if self.c2_connection:
                 rows += f"   1: 3201A8C0:A1F2 {_proc_net_hex(BADBOX_C2_IP)}:0050 01 0\n"
             return rows

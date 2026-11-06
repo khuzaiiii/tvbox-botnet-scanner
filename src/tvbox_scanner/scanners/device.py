@@ -55,7 +55,8 @@ def scan(adb, iocs, options) -> list[Finding]:
             title="Firmware signed with AOSP test-keys",
             target_type=TargetType.DEVICE,
             target="ro.build.tags",
-            detail="Common on no-name boxes; means the firmware is not certified and system apps can be swapped freely.",
+            detail="Common on no-name boxes; means the firmware is not certified and system apps can be "
+                   "swapped freely.",
             evidence={"ro.build.tags": props["ro.build.tags"]},
         ))
 

@@ -1,0 +1,32 @@
+name: New IOC
+description: Suggest a package, file, hash, domain or IP to detect
+title: "New IOC: <family>"
+labels: ["ioc"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every IOC in this tool must come from a public source anyone can check. A report from you alone
+        isn't enough: link the write-up. Never upload samples here.
+  - type: input
+    id: family
+    attributes:
+      label: Malware family
+      placeholder: Vo1d
+    validations:
+      required: true
+  - type: textarea
+    id: iocs
+    attributes:
+      label: Indicators
+      description: One per line, with the type (package / file path / sha256 / domain / ip)
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Public source
+      description: Link to the vendor report, repository or ThreatFox entry that lists them
+    validations:
+      required: true

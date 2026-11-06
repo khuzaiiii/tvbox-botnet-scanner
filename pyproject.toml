@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tvbox-botnet-scanner"
 version = "0.1.0"
-description = "Scan and remediate botnet malware (Vo1d, BADBOX, T95 Corejava) on Android TV boxes over ADB"
+description = "Scan and remediate botnet malware (Vo1d, BADBOX, T95 Corejava, Pandora) on Android TV boxes over ADB"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -24,3 +24,33 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 tvbox_scanner = ["ui/*.tcss", "data/iocs/*.json", "data/iocs/*.md"]
+
+[project.urls]
+Homepage = "https://github.com/khuzaiiii/tvbox-botnet-scanner"
+Issues = "https://github.com/khuzaiiii/tvbox-botnet-scanner/issues"
+Changelog = "https://github.com/khuzaiiii/tvbox-botnet-scanner/blob/main/CHANGELOG.md"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = [
+    "S101",  # assert in tests
+    "S108",  # /data/local/tmp is a device path, not a host temp file
+    "S310",  # urlopen of a fixed https URL in tools/update_iocs.py
+    "S603",  # subprocess with argv lists: adb, ffmpeg, the browser
+    "S607",  # "adb"/"ffmpeg" resolved from PATH on purpose
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E402"]
+"tools/*" = ["E402"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/tvbox_scanner"]
+ignore_missing_imports = true
+check_untyped_defs = true

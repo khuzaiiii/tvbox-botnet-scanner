@@ -1,0 +1,73 @@
+name: Tested on a real box
+description: Tell us how the tool behaved on your TV box (adds it to docs/DEVICES.md)
+title: "Device report: <brand> <model>"
+labels: ["device-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing. **Don't attach anything from `backups/`**: it holds live malware.
+        If you paste a scan report, make it with `--redact` so your LAN addresses stay private.
+  - type: input
+    id: model
+    attributes:
+      label: Brand and model
+      description: As on the box or Settings > About
+      placeholder: T95 Max
+    validations:
+      required: true
+  - type: input
+    id: chip
+    attributes:
+      label: Chip / platform
+      description: Output of `adb shell getprop ro.board.platform`
+      placeholder: h616
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      placeholder: "10"
+    validations:
+      required: true
+  - type: dropdown
+    id: root
+    attributes:
+      label: Root
+      options: ["no", "adbd (adb root works)", "su"]
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connected by
+      options: ["Wi-Fi (adb connect)", "USB cable", "Wireless debugging with pairing code"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: tested
+    attributes:
+      label: What you ran
+      options:
+        - label: scan
+        - label: scan --deep
+        - label: remove (dry run)
+        - label: remove --apply
+        - label: remove --apply --allow-system
+        - label: restore
+        - label: ui
+  - type: input
+    id: verdict
+    attributes:
+      label: Verdict
+      placeholder: infected_firmware
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste `tvbox-scan scan` output, or the `--redact` JSON. Errors are especially useful.
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Where Developer options were hidden, what came back after a reboot, and so on.

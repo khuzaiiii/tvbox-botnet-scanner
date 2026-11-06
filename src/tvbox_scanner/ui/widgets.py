@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from rich.text import Text
 
+from tvbox_scanner.i18n import t
 from tvbox_scanner.models import Severity, Verdict
 from tvbox_scanner.remediation import Risk
 
@@ -22,29 +23,30 @@ SEVERITY_STYLE = {
 }
 
 SEVERITY_LABEL = {
-    Severity.CRITICAL: " KRITIKAL ",
-    Severity.HIGH: "TINGGI",
-    Severity.MEDIUM: "SEDERHANA",
-    Severity.LOW: "RENDAH",
+    Severity.CRITICAL: t(" KRITIKAL "),
+    Severity.HIGH: t("TINGGI"),
+    Severity.MEDIUM: t("SEDERHANA"),
+    Severity.LOW: t("RENDAH"),
     Severity.INFO: "INFO",
 }
 
 RISK_BADGE = {
-    Risk.SAFE: ("SELAMAT", "bold green"),
-    Risk.MODERATE: ("SEDERHANA", "bold yellow"),
+    Risk.SAFE: (t("SELAMAT"), "bold green"),
+    Risk.MODERATE: (t("SEDERHANA"), "bold yellow"),
     Risk.DANGEROUS: ("/SYSTEM", "bold white on red"),
 }
 
 VERDICT_UI = {
-    Verdict.NO_IOC_MATCH: ("verdict-clean", "TIADA PADANAN IOC",
-                           "Tiada tanda botnet yang dikenali. Ini bukan bukti box bersih: hanya IOC yang disertakan disemak."),
-    Verdict.SUSPICIOUS: ("verdict-suspicious", "MENCURIGAKAN",
-                         "Ada petunjuk sederhana. Semak penemuan di atas."),
-    Verdict.INFECTED_REMOVABLE: ("verdict-infected", "DIJANGKITI",
-                                 "Malware berada dalam /data dan boleh dibuang. Tekan 'Buang botnet'."),
-    Verdict.INFECTED_FIRMWARE: ("verdict-infected", "DIJANGKITI (FIRMWARE)",
-                                "Malware tertanam dalam /system. Buang perlukan root dan mungkin kembali selepas reboot; "
-                                "flash firmware bersih atau ganti box adalah penyelesaian yang pasti."),
+    Verdict.NO_IOC_MATCH: ("verdict-clean", t("TIADA PADANAN IOC"),
+                           t("Tiada tanda botnet yang dikenali. Ini bukan bukti box bersih: hanya IOC yang "
+                             "disertakan disemak.")),
+    Verdict.SUSPICIOUS: ("verdict-suspicious", t("MENCURIGAKAN"),
+                         t("Ada petunjuk sederhana. Semak penemuan di atas.")),
+    Verdict.INFECTED_REMOVABLE: ("verdict-infected", t("DIJANGKITI"),
+                                 t("Malware berada dalam /data dan boleh dibuang. Tekan 'Buang botnet'.")),
+    Verdict.INFECTED_FIRMWARE: ("verdict-infected", t("DIJANGKITI (FIRMWARE)"),
+                                t("Malware tertanam dalam /system. Buang perlukan root dan mungkin kembali selepas "
+                                  "reboot; flash firmware bersih atau ganti box adalah penyelesaian yang pasti.")),
 }
 
 

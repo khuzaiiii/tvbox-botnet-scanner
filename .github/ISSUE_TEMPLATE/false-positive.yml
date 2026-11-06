@@ -1,0 +1,37 @@
+name: Wrong finding (false positive)
+description: The tool flagged something that is not malware
+title: "False positive: <what was flagged>"
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A wrong IOC can make people delete things from their box, so these reports matter.
+        Don't attach files from `backups/`.
+  - type: input
+    id: finding
+    attributes:
+      label: Finding title
+      description: Exactly as printed
+    validations:
+      required: true
+  - type: input
+    id: scanner
+    attributes:
+      label: Scanner
+      description: The `scanner` field in the JSON report (device, packages, files, processes, network, heuristics, crosscheck)
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Brand, model and Android version
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why you think it's not malware
+      description: Where the app or file came from, links to the maker, hashes, etc.
+    validations:
+      required: true

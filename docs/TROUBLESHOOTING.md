@@ -32,6 +32,11 @@ Never "fix" something by disabling, uninstalling, resetting or rooting anything.
 | Exit code 2 | adb error | Run `tvbox-scan devices`; fix the connection first |
 | `--deep` is very slow | It hashes every APK on a slow box | Expected. It's optional |
 | Verdict `no_ioc_match` | No known sign matched | Not proof the box is clean. Say so. Suggest the block list and turning debugging off |
+| Verdict `suspicious` with only `heuristics` / `crosscheck` findings | Something unusual, but no known IOC | Show each finding and say it may be harmless. Nothing is removed for these. Ask the person whether they recognize the app, port or proxy |
+| `scanner error: crosscheck: ... ps output not understood` | This box's `ps` prints a format the tool doesn't parse | Harmless; the other checks ran. Report the box model so the parser can be fixed |
+| `Process hidden from ps` | A process exists in `/proc` but `ps` doesn't list it | Can be a rootkit. Don't kill it by hand; report it, keep the scan JSON, and treat the box as untrusted |
+| `ADB is open on the network (port 5555)` | Expected while scanning over Wi-Fi | Remind the person to turn network debugging off at the end |
+| `--all` exits 2 with `no authorized device` | No box in state `device` | Run `tvbox-scan devices`; accept the prompt on each TV |
 
 ## Removing
 

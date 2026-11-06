@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from tvbox_scanner.remediation.actions import Action, Risk
 
@@ -120,7 +120,9 @@ def execute_plan(
             on_start(len(results), action)
         try:
             step = f"step{len(results):02d}"
-            saved = _backup(adb, action.backup_paths, backup_dir, step, action.requires_root) if action.backup_paths else []
+            saved = []
+            if action.backup_paths:
+                saved = _backup(adb, action.backup_paths, backup_dir, step, action.requires_root)
             for local, remote in action.uploads:
                 adb.push(Path(local), remote)
             outputs = []

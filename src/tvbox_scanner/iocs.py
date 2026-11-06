@@ -54,7 +54,7 @@ class IocSet:
         return self.hashes["sha256"]
 
     @classmethod
-    def from_dict(cls, data: dict) -> "IocSet":
+    def from_dict(cls, data: dict) -> IocSet:
         family = data["family"]
         hashes = {}
         for algo, length in HASH_LENGTHS.items():

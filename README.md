@@ -1,6 +1,8 @@
 # tvbox-botnet-scanner
 
-Scan dan buang malware botnet (Vo1d, BADBOX / T95 Corejava) pada Android TV box melalui ADB dari PC.
+Scan dan buang malware botnet (Vo1d, BADBOX / BADBOX 2.0, T95 Corejava, Pandora) pada Android TV box melalui ADB dari PC.
+
+[![CI](https://github.com/khuzaiiii/tvbox-botnet-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/khuzaiiii/tvbox-botnet-scanner/actions/workflows/ci.yml)
 
 ![Demo: scan, semak penemuan, pelan pembuangan, sahkan, buang, scan semula](docs/demo/tvbox-scan-demo.gif)
 
@@ -44,8 +46,11 @@ Atau tanpa clone: `uv tool install "tvbox-botnet-scanner[ui] @ git+https://githu
 
 ```
 PC (Python 3.10+) --ADB (USB / WiFi)--> TV box
-  scan      : device props, packages, fail IOC, proses, sambungan TCP ke C2
-  remove    : rancang tindakan -> dry-run -> backup ke PC -> laksana
+  scan      : IOC dikenali  -> device props, packages, fail, proses, sambungan TCP ke C2, tetapan DNS
+              heuristik     -> proses dari folder luar biasa, app pengguna bernama com.android.*, proxy, port terbuka, su
+              semakan silang-> /proc lawan ps, packages.xml lawan pm (malware yang menyorok)
+  remove    : rancang tindakan (IOC dikenali sahaja) -> dry-run -> backup ke PC -> laksana
+  compare   : banding report sebelum dan selepas (apa yang hilang, kekal, kembali)
   blocklist : eksport domain/IP C2 untuk Pi-hole / router
 ```
 
@@ -62,12 +67,16 @@ src/tvbox_scanner/
     packages.py       nama package + hash APK (--deep)
     files.py          fail dropper/payload, skrip boot yang diubah
     processes.py      proses berniat jahat yang sedang berjalan
-    network.py        /proc/net/tcp{,6} -> IP C2
+    network.py        /proc/net/tcp{,6} -> IP C2; DNS / Private DNS yang tunjuk ke C2
+    heuristics.py     tanda tanpa IOC (paling tinggi SEDERHANA, tidak pernah dibuang automatik)
+    crosscheck.py     tanya box dua cara, tanda kalau jawapan berbeza
   remediation/
     actions.py        Action + tahap risiko (SAFE / MODERATE / DANGEROUS)
     planner.py        finding -> pelan (kill -> rm fail -> buang package)
     executor.py       dry-run lalai, backup sebelum padam, log actions.json
-  report/             output teks, JSON, HTML
+  report/             output teks, JSON, HTML; redact.py sorok IP LAN sebelum kongsi
+  compare.py          banding dua report JSON
+  i18n.py             teks UI Melayu / English
   blocklist.py        hosts / senarai domain / senarai IP
   data/iocs/          satu JSON untuk setiap famili malware (lihat README di dalamnya)
   ui/                 TUI Textual (pilih device, scan langsung, buang interaktif)
@@ -80,6 +89,7 @@ tests/                unittest + test UI headless dengan FakeAdb (tiada device d
 ```bash
 tvbox-scan ui                       # pilih device dari senarai / sambung guna IP
 tvbox-scan -s 192.168.1.50:5555 ui  # terus ke scan
+tvbox-scan ui --lang en             # English (atau set TVBOX_LANG=en)
 ```
 
 - **Pilih device:** senarai `adb devices`, dan boleh sambung guna IP.
@@ -96,35 +106,47 @@ adb connect 192.168.1.50:5555        # atau sambung guna USB
 tvbox-scan devices
 tvbox-scan scan --html reports/box.html
 tvbox-scan scan --deep                # hash setiap APK, lambat
+tvbox-scan scan --json reports/before.json --redact   # sorok IP LAN dan proxy, untuk kongsi di forum
+tvbox-scan scan --all --out-dir reports/              # scan semua box yang disambung, satu report setiap box
 tvbox-scan remove                     # dry-run: tunjuk apa yang akan dibuat
 tvbox-scan remove --apply             # laksana, tanya setiap langkah
 tvbox-scan remove --apply --allow-system   # termasuk padam fail dalam /system (perlukan root)
 tvbox-scan restore backups/<masa>    # dry-run: tunjuk apa yang akan dipulihkan
 tvbox-scan restore backups/<masa> --apply --allow-system   # undo remove (contoh: box bootloop)
+tvbox-scan compare reports/before.json reports/after.json  # selepas reboot: apa yang kembali?
 tvbox-scan export-blocklist --format domains > badbox.txt
 ```
 
-Kod keluar `scan`: 0 = tiada padanan HIGH, 1 = dijangkiti, 2 = ralat adb.
+Kod keluar `scan` dan `compare`: 0 = tiada penemuan HIGH, 1 = ada (atau kembali), 2 = ralat.
 
 ## Had penting
 
 - **`NO_IOC_MATCH` tidak bermaksud bersih.** Scanner hanya kenal IOC yang ada dalam `src/tvbox_scanner/data/iocs/`.
+  Heuristik dan semakan silang membantu, tetapi malware baru masih boleh terlepas.
+- **Heuristik boleh salah.** Ia hanya menanda (paling tinggi SEDERHANA, keputusan MENCURIGAKAN) dan tidak
+  pernah masuk pelan pembuangan. Semak dulu apa benda itu.
 - **Tanpa root**, `/data/system` dan sebahagian `/system` tidak kelihatan, dan app sistem hanya boleh
   di-disable untuk user 0. APK masih kekal dalam firmware.
 - **Vo1d / BADBOX tertanam dalam firmware.** Factory reset tidak buang malware ini. Lepas `remove`,
   reboot dan scan semula. Kalau ia muncul semula, flash firmware bersih atau ganti box.
 - Memadam fail dalam `/system` boleh menyebabkan bootloop. Sebab itu ia perlukan `--allow-system`,
   dan setiap fail di-backup dulu ke `backups/<masa>/`. **Backup tu mengandungi sampel malware.**
-- Domain C2 tidak boleh dikesan dari box (tiada log DNS). Sekat di router atau Pi-hole guna `export-blocklist`.
+- Carian DNS ke domain C2 tidak boleh dilihat dari box (tiada log DNS). Tool ini hanya semak tetapan DNS dan
+  sambungan TCP yang sedang terbuka. Sekat domain di router atau Pi-hole guna `export-blocklist`.
+- **Belum diuji pada box sebenar.** Semua test guna box simulasi. Kalau anda uji pada box sebenar, sila
+  [laporkan](https://github.com/khuzaiiii/tvbox-botnet-scanner/issues/new?template=device-report.yml).
 
 ## IOC
 
-Fail IOC yang disertakan hanya mengandungi path dan nama yang disebut dalam laporan awam. Hash, domain dan IP
-sengaja dibiarkan kosong. Isi dari sumber asal:
+Setiap entri dalam fail IOC datang dari sumber awam yang disenaraikan dalam `sources` fail itu.
+Senarai penuh dan skema: [src/tvbox_scanner/data/iocs/README.md](src/tvbox_scanner/data/iocs/README.md).
 
-- Vo1d: <https://github.com/DoctorWebLtd/malware-iocs>
-- T95 / Corejava: <https://github.com/DesktopECHO/T95-H616-Malware>
-- BADBOX 2.0: laporan HUMAN Satori, ThreatFox (`THREATFOX_AUTH_KEY=... python tools/update_iocs.py --tag BADBOX --file src/tvbox_scanner/data/iocs/badbox2.json`)
+- Vo1d, Pandora: [Dr.Web malware-iocs](https://github.com/DoctorWebLtd/malware-iocs)
+- BADBOX 2.0: [Nokia Deepfield](https://github.com/deepfield/public-research/tree/main/ipmoyu)
+- T95 / Corejava: [DesktopECHO/T95-H616-Malware](https://github.com/DesktopECHO/T95-H616-Malware)
+- Tambahan dari ThreatFox: `THREATFOX_AUTH_KEY=... python tools/update_iocs.py --tag <tag> --file <fail>`.
+  Semak tag di threatfox.abuse.ch dulu. Workflow `update-iocs.yml` boleh buat ini setiap minggu dan buka PR
+  untuk disemak (lihat komen dalam fail itu untuk setup).
 
 ## Rujukan projek
 
@@ -132,11 +154,16 @@ sengaja dibiarkan kosong. Isi dari sumber asal:
 - [Universal Android Debloater NG](https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation)
 - [MVT](https://github.com/mvt-project/mvt)
 
-## Test
+## Test dan sumbangan
 
 ```bash
+pip install -e ".[ui]"
 python -m unittest discover -s tests -v
+ruff check . && mypy
 ```
+
+Lihat [CONTRIBUTING.md](CONTRIBUTING.md). Jumpa kelemahan keselamatan dalam tool ini? [SECURITY.md](SECURITY.md).
+Perubahan setiap versi: [CHANGELOG.md](CHANGELOG.md).
 
 ## Penafian
 

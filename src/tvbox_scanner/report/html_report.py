@@ -40,7 +40,8 @@ def write_html(result: ScanResult, path: Path) -> None:
     d = result.device
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(TEMPLATE.format(
-        device=escape(f"{d.get('ro.product.manufacturer')} {d.get('ro.product.model')} - {d.get('ro.build.fingerprint')}"),
+        device=escape(f"{d.get('ro.product.manufacturer')} {d.get('ro.product.model')} - "
+                      f"{d.get('ro.build.fingerprint')}"),
         verdict=escape(result.verdict.value.upper()),
         verdict_text=escape(VERDICT_TEXT[result.verdict]),
         rows=rows,

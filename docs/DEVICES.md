@@ -21,7 +21,7 @@ Add a row only with a link to a public report that names the model.
 
 None yet on real hardware. The tool has been tested against a simulated infected box (`tests/fake_adb.py`).
 
-When you test a real box, add a row and open a pull request:
+When you test a real box, fill in the [device report](https://github.com/khuzaiiii/tvbox-botnet-scanner/issues/new?template=device-report.yml) or add a row here in a pull request:
 
 | Model | Chip | Android | Root | Connected by | What was tested | Result |
 |---|---|---|---|---|---|---|

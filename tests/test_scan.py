@@ -7,7 +7,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fake_adb import FakeAdb  # noqa: E402
-
 from tvbox_scanner.blocklist import export_blocklist  # noqa: E402
 from tvbox_scanner.engine import run_scan  # noqa: E402
 from tvbox_scanner.iocs import IocSet, load_iocs  # noqa: E402
@@ -265,8 +264,9 @@ class ScanTests(unittest.TestCase):
 
     def test_restore_rejects_tampered_log(self):
         import json
-        from tvbox_scanner.remediation.restore import RestoreError, build_restore_plan
+
         from tvbox_scanner.remediation.executor import UnsafeBackupPath
+        from tvbox_scanner.remediation.restore import RestoreError, build_restore_plan
         with tempfile.TemporaryDirectory() as tmp:
             backup_dir = self._removed_box(tmp)
             log = backup_dir / "actions.json"

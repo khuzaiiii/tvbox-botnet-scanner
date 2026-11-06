@@ -123,8 +123,17 @@ def build_plan(result: ScanResult, min_severity: Severity = Severity.HIGH) -> li
         elif f.target_type == TargetType.PACKAGE:
             plan.extend(_plan_package(f))
         elif f.target_type == TargetType.NETWORK and f.evidence.get("ip") not in seen_net:
-            seen_net.add(f.evidence.get("ip"))
+            seen_net.add(str(f.evidence.get("ip")))
             plan.append(_plan_network(f))
+        elif f.target_type == TargetType.DEVICE and f.evidence.get("setting"):
+            plan.append(Action(
+                description=f"Reset {f.evidence['setting']} (now {f.evidence.get('value')}): Settings > Network, "
+                            "set DNS / Private DNS back to automatic",
+                commands=[],
+                risk=Risk.SAFE,
+                finding_title=f.title,
+                manual_only=True,
+            ))
 
     if any(a.risk == Risk.DANGEROUS for a in plan):
         plan.append(Action(

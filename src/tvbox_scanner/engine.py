@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from tvbox_scanner.models import Finding, ScanResult
 from tvbox_scanner.scanners import ALL_SCANNERS, ScanOptions

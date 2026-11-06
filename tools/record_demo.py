@@ -62,7 +62,7 @@ async def capture_session(frames_dir: Path, work: Path, fps: int) -> tuple[list[
         async def grab() -> None:
             while running:
                 svg = app.export_screenshot()
-                key = hashlib.sha1(svg.encode()).hexdigest()[:16]
+                key = hashlib.sha256(svg.encode()).hexdigest()[:16]  # frame dedup key
                 path = frames_dir / f"{key}.svg"
                 if not path.exists():
                     path.write_text(svg, encoding="utf-8")

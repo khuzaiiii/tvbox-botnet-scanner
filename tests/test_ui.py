@@ -31,6 +31,7 @@ class UiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_scan_then_remove_flow(self):
         from textual.widgets import Button, DataTable, RichLog, SelectionList, Static, Switch
+
         from tvbox_scanner.ui.app import ConfirmModal, RemoveScreen, ScanScreen
 
         app = self.make_app(INFECTED)

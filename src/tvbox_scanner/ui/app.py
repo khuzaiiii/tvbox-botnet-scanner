@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
+from typing import Any, cast
 
 from rich.text import Text
 from textual import on, work
@@ -30,6 +31,7 @@ from textual.widgets import (
 from textual.widgets.selection_list import Selection
 
 from tvbox_scanner.engine import run_scan, selected_scanners
+from tvbox_scanner.i18n import t
 from tvbox_scanner.models import Finding, ScanResult, Verdict
 from tvbox_scanner.remediation import Action, Risk, build_plan, execute_plan
 from tvbox_scanner.remediation.executor import ActionResult
@@ -38,22 +40,29 @@ from tvbox_scanner.scanners import ScanOptions
 from tvbox_scanner.ui.widgets import VERDICT_UI, plain, risk_badge, severity_cell
 
 SCANNER_LABELS = {
-    "device": "Maklumat device",
-    "packages": "Aplikasi terpasang",
-    "files": "Fail sistem (IOC)",
-    "processes": "Proses berjalan",
-    "network": "Sambungan rangkaian",
+    "device": t("Maklumat device"),
+    "packages": t("Aplikasi terpasang"),
+    "files": t("Fail sistem (IOC)"),
+    "processes": t("Proses berjalan"),
+    "network": t("Sambungan rangkaian"),
+    "heuristics": t("Heuristik"),
+    "crosscheck": t("Semakan silang"),
 }
 SPINNER = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 STATUS_ICON = {"pending": ("○", "dim"), "done": ("✔", "bold green"), "error": ("✖", "bold red")}
 RESULT_BADGE = {
-    "done": (" ✔ SIAP ", "bold black on green"),
-    "failed": (" ✖ GAGAL ", "bold white on red"),
+    "done": (t(" ✔ SIAP "), "bold black on green"),
+    "failed": (t(" ✖ GAGAL "), "bold white on red"),
     "dry-run": (" DRY RUN ", "bold black on cyan"),
-    "skipped": (" LANGKAU ", "dim reverse"),
+    "skipped": (t(" LANGKAU "), "dim reverse"),
 }
 
-AdbFactory = Callable[[str | None], object]
+AdbFactory = Callable[[str | None], Any]
+
+
+def tvapp(widget) -> TvBoxApp:
+    """The running app, typed, so its scanner-specific attributes type-check."""
+    return cast("TvBoxApp", widget.app)
 
 
 def _display_path(path: Path) -> str:
@@ -68,22 +77,22 @@ def _display_path(path: Path) -> str:
 # --------------------------------------------------------------------------- device picker
 
 class DeviceScreen(Screen):
-    BINDINGS = [("f5", "refresh", "Muat semula")]
+    BINDINGS = [("f5", "refresh", t("Muat semula"))]
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Vertical(id="device-box"):
-            yield Static("Pilih TV box", classes="title")
+            yield Static(t("Pilih TV box"), classes="title")
             yield Static(
-                "Sambung guna kabel USB, atau aktifkan ADB rangkaian pada box dan masukkan IP di bawah.",
+                t("Sambung guna kabel USB, atau aktifkan ADB rangkaian pada box dan masukkan IP di bawah."),
                 classes="hint",
             )
             yield ListView(id="devices")
             yield Static("", id="device-msg", classes="hint")
             with Horizontal(classes="row"):
                 yield Input(placeholder="192.168.1.50:5555", id="host")
-                yield Button("Sambung", id="connect", variant="primary")
-                yield Button("Muat semula", id="refresh")
+                yield Button(t("Sambung"), id="connect", variant="primary")
+                yield Button(t("Muat semula"), id="refresh")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -93,12 +102,12 @@ class DeviceScreen(Screen):
         lv = self.query_one("#devices", ListView)
         lv.clear()
         try:
-            devices = self.app.adb_factory(None).devices()
+            devices = tvapp(self).adb_factory(None).devices()
         except Exception as exc:
             self._msg(str(exc), error=True)
             return
         if not devices:
-            self._msg("Tiada device. Semak kabel / IP, dan benarkan USB debugging pada TV.")
+            self._msg(t("Tiada device. Semak kabel / IP, dan benarkan USB debugging pada TV."))
         for d in devices:
             item = ListItem(Label(Text.assemble(
                 ("● " if d.state == "device" else "○ ", "green" if d.state == "device" else "yellow"),
@@ -108,7 +117,7 @@ class DeviceScreen(Screen):
             item.state = d.state  # type: ignore[attr-defined]
             lv.append(item)
         if devices:
-            self._msg("Pilih device dan tekan Enter.")
+            self._msg(t("Pilih device dan tekan Enter."))
             lv.focus()
 
     def _msg(self, text: str, error: bool = False) -> None:
@@ -123,13 +132,13 @@ class DeviceScreen(Screen):
     def _connect(self) -> None:
         host = self.query_one("#host", Input).value.strip()
         if host:
-            self._msg(f"Menyambung ke {host}...")
+            self._msg(t("Menyambung ke {host}...").format(host=host))
             self._do_connect(host)
 
     @work(thread=True, exclusive=True)
     def _do_connect(self, host: str) -> None:
         try:
-            out = self.app.adb_factory(None).connect(host)
+            out = tvapp(self).adb_factory(None).connect(host)
             self.app.call_from_thread(self._msg, out)
             self.app.call_from_thread(self.action_refresh)
         except Exception as exc:
@@ -138,7 +147,7 @@ class DeviceScreen(Screen):
     @on(ListView.Selected, "#devices")
     def _picked(self, event: ListView.Selected) -> None:
         if getattr(event.item, "state", "") != "device":
-            self._msg("Device belum dibenarkan. Terima prompt 'Allow USB debugging' pada skrin TV.", error=True)
+            self._msg(t("Device belum dibenarkan. Terima prompt 'Allow USB debugging' pada skrin TV."), error=True)
             return
         self.app.open_device(event.item.serial)  # type: ignore[attr-defined]
 
@@ -149,9 +158,9 @@ class ScanScreen(Screen):
     BINDINGS = [
         ("s", "scan(False)", "Scan"),
         ("D", "scan(True)", "Deep scan"),
-        ("r", "remove", "Buang botnet"),
-        ("w", "save", "Simpan report"),
-        ("escape", "back", "Tukar device"),
+        ("r", "remove", t("Buang botnet")),
+        ("w", "save", t("Simpan report")),
+        ("escape", "back", t("Tukar device")),
     ]
 
     def __init__(self, adb, serial: str) -> None:
@@ -168,24 +177,24 @@ class ScanScreen(Screen):
         yield Static(id="device-bar")
         with Horizontal(id="scan-body"):
             with Vertical(id="steps"):
-                yield Static("Langkah scan", classes="title")
+                yield Static(t("Langkah scan"), classes="title")
                 for name in SCANNER_LABELS:
                     yield Static(id=f"step-{name}", classes="step")
                 yield ProgressBar(id="scan-progress", show_eta=False)
             with Vertical(id="findings-pane"):
-                table = DataTable(id="findings", cursor_type="row", zebra_stripes=True)
+                table: DataTable = DataTable(id="findings", cursor_type="row", zebra_stripes=True)
                 yield table
                 yield VerticalScroll(Static(id="detail"), id="detail-box")
         yield Static(id="verdict")
         with Horizontal(classes="row buttons"):
-            yield Button("Scan semula", id="scan", variant="primary")
+            yield Button(t("Scan semula"), id="scan", variant="primary")
             yield Button("Deep scan", id="deep")
-            yield Button("Buang botnet ▶", id="remove", variant="error", disabled=True)
-            yield Button("Simpan report", id="save", disabled=True)
+            yield Button(t("Buang botnet ▶"), id="remove", variant="error", disabled=True)
+            yield Button(t("Simpan report"), id="save", disabled=True)
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("#findings", DataTable).add_columns("Tahap", "Famili", "Penemuan")
+        self.query_one("#findings", DataTable).add_columns(t("Tahap"), t("Famili"), t("Penemuan"))
         self.query_one("#device-bar", Static).update(plain(f"Device: {self.serial}", "bold"))
         self.set_interval(0.1, self._tick)
         self.action_scan(False)
@@ -201,8 +210,8 @@ class ScanScreen(Screen):
         self.query_one("#detail", Static).update("")
         verdict = self.query_one("#verdict", Static)
         verdict.set_classes("")
-        verdict.update(Text("Sedang scan" + (" (deep: hash setiap APK, mungkin lambat)" if deep else "") + "...",
-                            style="italic"))
+        verdict.update(Text(t("Sedang scan (deep: hash setiap APK, mungkin lambat)...") if deep
+                            else t("Sedang scan..."), style="italic"))
         for b in ("#remove", "#save", "#scan", "#deep"):
             self.query_one(b, Button).disabled = True
         names = selected_scanners()
@@ -216,7 +225,7 @@ class ScanScreen(Screen):
         def progress(name, status, payload):
             self.app.call_from_thread(self._on_progress, name, status, payload)
         try:
-            result = run_scan(self.adb, self.app.iocs, ScanOptions(deep=deep), on_progress=progress)
+            result = run_scan(self.adb, tvapp(self).iocs, ScanOptions(deep=deep), on_progress=progress)
         except Exception as exc:
             self.app.call_from_thread(self._scan_failed, str(exc))
             return
@@ -230,7 +239,7 @@ class ScanScreen(Screen):
             for f in payload:
                 self._add_finding(f)
         if status == "error":
-            self.notify(f"{SCANNER_LABELS.get(name, name)}: {payload}", title="Ralat scanner",
+            self.notify(f"{SCANNER_LABELS.get(name, name)}: {payload}", title=t("Ralat scanner"),
                         severity="error", markup=False)
         self._render_steps()
 
@@ -247,20 +256,21 @@ class ScanScreen(Screen):
             ("Device: ", "dim"), plain(f"{d.get('ro.product.manufacturer')} {d.get('ro.product.model')}", "bold"),
             ("   Android ", "dim"), plain(d.get("ro.build.version.release")),
             ("   Chip ", "dim"), plain(d.get("ro.board.platform")),
-            ("   Root ", "dim"), ("YA", "bold green") if result.root else ("TIDAK", "bold yellow"),
+            ("   Root ", "dim"), (t("YA"), "bold green") if result.root else (t("TIDAK"), "bold yellow"),
             ("   Serial ", "dim"), plain(self.serial),
         ))
         css, title, text = VERDICT_UI[result.verdict]
         verdict = self.query_one("#verdict", Static)
         verdict.set_classes(css)
         verdict.update(Text.assemble((f" {title} ", "bold reverse"), "  ", text,
-                                     f"\n{len(result.findings)} penemuan dari {len(result.ioc_families)} famili IOC."))
+                                     t("\n{n} penemuan dari {families} famili IOC.").format(
+                                         n=len(result.findings), families=len(result.ioc_families))))
         has_plan = bool(build_plan(result))
         self.query_one("#remove", Button).disabled = not has_plan
         for b in ("#save", "#scan", "#deep"):
             self.query_one(b, Button).disabled = False
         if not self.findings:
-            self.query_one("#detail", Static).update(Text("Tiada penemuan.", style="dim"))
+            self.query_one("#detail", Static).update(Text(t("Tiada penemuan."), style="dim"))
         else:
             # Rows arrive in scanner order while scanning; once done, worst first.
             table = self.query_one("#findings", DataTable)
@@ -274,7 +284,7 @@ class ScanScreen(Screen):
     def _scan_failed(self, message: str) -> None:
         verdict = self.query_one("#verdict", Static)
         verdict.set_classes("verdict-infected")
-        verdict.update(Text.assemble((" RALAT ", "bold reverse"), "  ", plain(message)))
+        verdict.update(Text.assemble((t(" RALAT "), "bold reverse"), "  ", plain(message)))
         self.step_state = {n: ("error" if s == "running" else s) for n, s in self.step_state.items()}
         self._render_steps()
         for b in ("#scan", "#deep"):
@@ -303,7 +313,7 @@ class ScanScreen(Screen):
         if event.row_key is None or event.row_key.value is None:
             return
         f = self.findings[int(event.row_key.value)]
-        parts = [plain(f.title, "bold"), "\n"]
+        parts: list = [plain(f.title, "bold"), "\n"]
         if f.detail:
             parts += [plain(f.detail, "italic"), "\n"]
         for k, v in f.evidence.items():
@@ -335,20 +345,20 @@ class ScanScreen(Screen):
         if self.result is None:
             return
         stamp = time.strftime("%Y%m%d-%H%M%S")
-        base = self.app.report_dir / f"scan-{stamp}"
+        base = tvapp(self).report_dir / f"scan-{stamp}"
         write_json(self.result, base.with_suffix(".json"))
         write_html(self.result, base.with_suffix(".html"))
-        self.notify(f"{base}.html\n{base}.json", title="Report disimpan", markup=False)
+        self.notify(f"{base}.html\n{base}.json", title=t("Report disimpan"), markup=False)
 
     def action_back(self) -> None:
-        if not self.app.fixed_serial:
+        if not tvapp(self).fixed_serial:
             self.app.pop_screen()
 
 
 # --------------------------------------------------------------------------- remove
 
 class ConfirmModal(ModalScreen[bool]):
-    BINDINGS = [("escape", "dismiss(False)", "Batal")]
+    BINDINGS = [("escape", "dismiss(False)", t("Batal"))]
 
     def __init__(self, body: Text) -> None:
         super().__init__()
@@ -356,11 +366,11 @@ class ConfirmModal(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="confirm-box"):
-            yield Static("Sahkan tindakan", classes="title")
+            yield Static(t("Sahkan tindakan"), classes="title")
             yield Static(self.body)
             with Horizontal(classes="row buttons"):
-                yield Button("Batal", id="no")
-                yield Button("Ya, laksana", id="yes", variant="error")
+                yield Button(t("Batal"), id="no")
+                yield Button(t("Ya, laksana"), id="yes", variant="error")
 
     def on_mount(self) -> None:
         self.query_one("#no", Button).focus()
@@ -375,7 +385,7 @@ class ConfirmModal(ModalScreen[bool]):
 
 
 class RemoveScreen(Screen[bool]):
-    BINDINGS = [("escape", "back", "Kembali")]
+    BINDINGS = [("escape", "back", t("Kembali"))]
 
     def __init__(self, adb, result: ScanResult) -> None:
         super().__init__()
@@ -390,14 +400,14 @@ class RemoveScreen(Screen[bool]):
         yield Header()
         with Horizontal(id="remove-body"):
             with Vertical(id="plan-pane"):
-                yield Static("Pelan pembuangan", classes="title")
+                yield Static(t("Pelan pembuangan"), classes="title")
                 if self.result.verdict == Verdict.INFECTED_FIRMWARE:
-                    yield Static(
+                    yield Static(t(
                         "Malware dalam firmware. Langkah /SYSTEM boleh menyebabkan bootloop; "
-                        "setiap fail di-backup ke PC dulu.", classes="warn")
+                        "setiap fail di-backup ke PC dulu."), classes="warn")
                 with Horizontal(classes="row switch-row"):
                     yield Switch(id="allow-system")
-                    yield Label("Benarkan ubah /system (risiko bootloop)")
+                    yield Label(t("Benarkan ubah /system (risiko bootloop)"))
                 yield SelectionList[int](*self._selections(False), id="plan")
                 yield VerticalScroll(Static(id="action-detail"), id="action-detail-box")
             with Vertical(id="log-pane"):
@@ -405,20 +415,20 @@ class RemoveScreen(Screen[bool]):
                 yield ProgressBar(id="remove-progress", show_eta=False)
                 yield RichLog(id="log", markup=False, wrap=True, min_width=20)
         with Horizontal(classes="row buttons"):
-            yield Button("Kembali", id="back")
+            yield Button(t("Kembali"), id="back")
             yield Button("Dry run", id="dry")
-            yield Button("Laksana", id="apply", variant="error")
+            yield Button(t("Laksana"), id="apply", variant="error")
             yield Button("Reboot box", id="reboot", disabled=True)
-            yield Button("Scan semula", id="rescan", variant="primary", disabled=True)
+            yield Button(t("Scan semula"), id="rescan", variant="primary", disabled=True)
         yield Footer()
 
     def _blocked_reason(self, action: Action, allow_system: bool) -> str | None:
         if action.manual_only:
-            return "langkah manual"
+            return t("langkah manual")
         if action.requires_root and not self.has_root:
-            return "perlu root"
+            return t("perlu root")
         if action.risk == Risk.DANGEROUS and not allow_system:
-            return "aktifkan suis /system"
+            return t("aktifkan suis /system")
         return None
 
     def _selections(self, allow_system: bool) -> list[Selection]:
@@ -433,10 +443,10 @@ class RemoveScreen(Screen[bool]):
 
     def on_mount(self) -> None:
         log = self.query_one("#log", RichLog)
-        log.write(Text(f"{len(self.plan)} langkah dirancang. Pilih langkah, kemudian 'Dry run' atau 'Laksana'.",
-                       style="dim"))
+        log.write(Text(t("{n} langkah dirancang. Pilih langkah, kemudian 'Dry run' atau 'Laksana'.").format(
+            n=len(self.plan)), style="dim"))
         if not self.has_root:
-            log.write(Text("Tiada root: hanya app pengguna boleh dibuang; app sistem hanya di-disable untuk user 0.",
+            log.write(Text(t("Tiada root: hanya app pengguna boleh dibuang; app sistem hanya di-disable untuk user 0."),
                            style="yellow"))
         self.query_one("#plan", SelectionList).focus()
 
@@ -462,7 +472,7 @@ class RemoveScreen(Screen[bool]):
         for b in a.backup_paths:
             parts += [("backup: ", "dim"), plain(b), "\n"]
         if a.requires_root:
-            parts += [("perlu root", "yellow"), "\n"]
+            parts += [(t("perlu root"), "yellow"), "\n"]
         self.query_one("#action-detail", Static).update(Text.assemble(*parts))
 
     def _chosen(self) -> list[Action]:
@@ -477,23 +487,30 @@ class RemoveScreen(Screen[bool]):
     def _apply(self) -> None:
         chosen = self._chosen()
         if not chosen:
-            self.notify("Tiada langkah dipilih.", severity="warning")
+            self.notify(t("Tiada langkah dipilih."), severity="warning")
             return
         dangerous = sum(1 for a in chosen if a.risk == Risk.DANGEROUS)
         body = Text.assemble(
-            (f"{len(chosen)} langkah", "bold"), " akan dijalankan pada ", plain(self.app.serial_label, "bold"), ".\n",
-            ("Fail di-backup ke ", ""), plain(_display_path(self.app.backup_root), "cyan"), " sebelum dipadam.\n",
+            (t("{n} langkah akan dijalankan pada ").format(n=len(chosen)), "bold"),
+            plain(tvapp(self).serial_label, "bold"), ".\n",
+            (t("Fail di-backup ke "), ""), plain(_display_path(tvapp(self).backup_root), "cyan"),
+            t(" sebelum dipadam.\n"),
         )
         if dangerous:
-            body.append(f"\n{dangerous} langkah mengubah /system dan boleh menyebabkan bootloop.\n", style="bold red")
-        self.app.push_screen(ConfirmModal(body), lambda ok: ok and self._start(apply=True))
+            body.append(t("\n{n} langkah mengubah /system dan boleh menyebabkan bootloop.\n").format(n=dangerous),
+                        style="bold red")
+        def confirmed(ok: bool | None) -> None:
+            if ok:
+                self._start(apply=True)
+
+        self.app.push_screen(ConfirmModal(body), confirmed)
 
     def _start(self, apply: bool) -> None:
         if self.running:
             return
         chosen = self._chosen()
         if not chosen:
-            self.notify("Tiada langkah dipilih.", severity="warning")
+            self.notify(t("Tiada langkah dipilih."), severity="warning")
             return
         self.running = True
         for b in ("#dry", "#apply", "#back", "#rescan", "#reboot"):
@@ -502,7 +519,9 @@ class RemoveScreen(Screen[bool]):
         self.query_one("#allow-system", Switch).disabled = True
         self.query_one("#remove-progress", ProgressBar).update(total=len(chosen), progress=0)
         log = self.query_one("#log", RichLog)
-        log.write(Text(f"\n── {'LAKSANA' if apply else 'DRY RUN'} ({len(chosen)} langkah) ──", style="bold"))
+        mode = t("LAKSANA") if apply else "DRY RUN"
+        steps = t("{n} langkah").format(n=len(chosen))
+        log.write(Text(f"\n── {mode} ({steps}) ──", style="bold"))
         self._run_worker(chosen, apply, self.query_one("#allow-system", Switch).value)
 
     @work(thread=True, exclusive=True, group="remove")
@@ -512,7 +531,7 @@ class RemoveScreen(Screen[bool]):
                 self.adb, chosen,
                 apply=apply,
                 allow_dangerous=allow_system,
-                backup_root=self.app.backup_root,
+                backup_root=tvapp(self).backup_root,
                 on_start=lambda i, a: self.app.call_from_thread(self._on_start, a),
                 on_result=lambda i, r: self.app.call_from_thread(self._on_result, r),
             )
@@ -541,7 +560,7 @@ class RemoveScreen(Screen[bool]):
             log.write(Text.assemble("    ", plain(r.message, "red" if r.status == "failed" else "dim")))
 
     def _log_error(self, message: str) -> None:
-        self.query_one("#log", RichLog).write(Text.assemble(("RALAT: ", "bold red"), plain(message)))
+        self.query_one("#log", RichLog).write(Text.assemble((t("RALAT: "), "bold red"), plain(message)))
 
     def _finished(self, results: list[ActionResult], apply: bool) -> None:
         self.running = False
@@ -550,10 +569,10 @@ class RemoveScreen(Screen[bool]):
         failed = sum(r.status == "failed" for r in results)
         if apply:
             self.finished = True
-            log.write(Text(f"\nSelesai: {done} berjaya, {failed} gagal.",
+            log.write(Text(t("\nSelesai: {done} berjaya, {failed} gagal.").format(done=done, failed=failed),
                            style="bold red" if failed else "bold green"))
-            log.write(Text("Reboot box, kemudian scan semula. Kalau fail muncul semula, malware ada dalam "
-                           "partition yang tool ini tak boleh bersihkan: flash firmware bersih atau ganti box.",
+            log.write(Text(t("Reboot box, kemudian scan semula. Kalau fail muncul semula, malware ada dalam "
+                             "partition yang tool ini tak boleh bersihkan: flash firmware bersih atau ganti box."),
                            style="yellow"))
             self.query_one("#reboot", Button).disabled = False
             self.query_one("#rescan", Button).disabled = False
@@ -571,8 +590,8 @@ class RemoveScreen(Screen[bool]):
         except Exception as exc:
             self._log_error(str(exc))
             return
-        self.query_one("#log", RichLog).write(Text("Arahan reboot dihantar. Tunggu box hidup, kemudian 'Scan semula'.",
-                                                   style="cyan"))
+        message = t("Arahan reboot dihantar. Tunggu box hidup, kemudian 'Scan semula'.")
+        self.query_one("#log", RichLog).write(Text(message, style="cyan"))
 
     @on(Button.Pressed, "#rescan")
     def _rescan(self) -> None:
@@ -589,8 +608,8 @@ class RemoveScreen(Screen[bool]):
 class TvBoxApp(App):
     CSS_PATH = "app.tcss"
     TITLE = "TV Box Botnet Scanner"
-    SUB_TITLE = "Vo1d · BADBOX · T95 Corejava"
-    BINDINGS = [("q", "quit", "Keluar"), ("t", "toggle_theme", "Tema")]
+    SUB_TITLE = "Vo1d · BADBOX · T95 Corejava · Pandora"
+    BINDINGS = [("q", "quit", t("Keluar")), ("t", "toggle_theme", t("Tema"))]
 
     def __init__(self, adb_factory: AdbFactory, iocs, serial: str | None = None,
                  backup_root: Path = Path("backups"), report_dir: Path = Path("reports")) -> None:

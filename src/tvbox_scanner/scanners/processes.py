@@ -12,7 +12,7 @@ def list_processes(adb) -> list[tuple[str, str]]:
     out = adb.shell("ps -A -o PID,NAME 2>/dev/null", root=adb.has_root())
     if "PID" not in out:
         out = adb.shell("ps", root=adb.has_root())
-    procs = []
+    procs: list[tuple[str, str]] = []
     lines = out.splitlines()
     if not lines:
         return procs

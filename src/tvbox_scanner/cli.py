@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -15,7 +16,8 @@ from tvbox_scanner.scanners import ALL_SCANNERS, ScanOptions
 
 
 def _parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="tvbox-scan", description="Scan and clean botnet malware on Android TV boxes via ADB.")
+    p = argparse.ArgumentParser(prog="tvbox-scan",
+                                description="Scan and clean botnet malware on Android TV boxes via ADB.")
     p.add_argument("-s", "--serial", help="adb device serial or ip:port (see `adb devices`)")
     p.add_argument("--adb", default="adb", help="path to adb binary")
     p.add_argument("--ioc-dir", type=Path, default=DEFAULT_IOC_DIR)
@@ -30,6 +32,13 @@ def _parser() -> argparse.ArgumentParser:
     scan.add_argument("--only", nargs="+", choices=list(ALL_SCANNERS), help="run only these scanners")
     scan.add_argument("--json", type=Path, help="write JSON report")
     scan.add_argument("--html", type=Path, help="write HTML report")
+    scan.add_argument("--all", action="store_true", help="scan every connected device; reports go to --out-dir")
+    scan.add_argument("--out-dir", type=Path, default=Path("reports"), help="report folder for --all")
+    scan.add_argument("--redact", action="store_true", help="mask LAN IPs and proxy settings in the reports")
+
+    cmp = sub.add_parser("compare", help="compare two JSON scan reports (e.g. before removal, after reboot)")
+    cmp.add_argument("before", type=Path)
+    cmp.add_argument("after", type=Path)
 
     rm = sub.add_parser("remove", help="scan, then remediate (dry-run unless --apply)")
     rm.add_argument("--deep", action="store_true")
@@ -46,6 +55,7 @@ def _parser() -> argparse.ArgumentParser:
 
     ui = sub.add_parser("ui", help="interactive terminal UI (needs the [ui] extra)")
     ui.add_argument("--backup-dir", type=Path, default=Path("backups"))
+    ui.add_argument("--lang", choices=["ms", "en"], help="UI language (default: $TVBOX_LANG, else ms)")
 
     bl = sub.add_parser("export-blocklist", help="print C2 domains/IPs for Pi-hole, router or hosts file")
     bl.add_argument("--format", choices=["hosts", "domains", "ips"], default="hosts")
@@ -98,6 +108,62 @@ def _restore(adb, args) -> int:
     return 1 if any(r.status == "failed" for r in results) else 0
 
 
+def _compare(args) -> int:
+    from tvbox_scanner.compare import CompareError, compare, format_comparison, load_report
+    try:
+        result = compare(load_report(args.before), load_report(args.after))
+    except CompareError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    print(format_comparison(result))
+    return 1 if result.high_left else 0
+
+
+def _report_name(serial: str) -> str:
+    """Serials come from the device (USB) or the user (ip:port); keep only safe characters."""
+    return "scan-" + (re.sub(r"[^A-Za-z0-9.-]+", "_", serial).strip("._") or "device")
+
+
+def _scan_exit_code(result) -> int:
+    return 1 if result.findings and max(f.severity for f in result.findings) >= Severity.HIGH else 0
+
+
+def _write_reports(result, json_path, html_path, redact: bool) -> None:
+    if redact:
+        from tvbox_scanner.report.redact import redacted
+        result = redacted(result)
+    if json_path:
+        write_json(result, json_path)
+    if html_path:
+        write_html(result, html_path)
+
+
+def _scan_all(args, iocs) -> int:
+    devices = [d for d in Adb(adb_path=args.adb).devices() if d.state == "device"]
+    if not devices:
+        print("error: no authorized device connected", file=sys.stderr)
+        return 2
+    worst, used = 0, set()
+    for d in devices:
+        print(f"\n===== {d.serial} =====")
+        name = _report_name(d.serial)
+        while name in used:
+            name += "_"
+        used.add(name)
+        try:
+            result = run_scan(Adb(serial=d.serial, adb_path=args.adb), iocs, ScanOptions(deep=args.deep), args.only)
+        except AdbError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            worst = 2
+            continue
+        print(format_text(result))
+        base = args.out_dir / name
+        _write_reports(result, base.with_suffix(".json"), base.with_suffix(".html"), args.redact)
+        print(f"report: {base}.json, {base}.html")
+        worst = max(worst, _scan_exit_code(result))
+    return worst
+
+
 def doctor(args) -> int:
     """Setup check meant for humans and AI agents alike. Exit 0 only if scanning can work."""
     ok = True
@@ -147,6 +213,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "doctor":
         return doctor(args)
+    if args.command == "compare":
+        return _compare(args)
     iocs = load_iocs(args.ioc_dir)
 
     if args.command == "export-blocklist":
@@ -154,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "ui":
+        from tvbox_scanner import i18n
+        i18n.set_language(args.lang)  # before the UI modules are imported: they translate at import time
         try:
             from tvbox_scanner.ui.app import run_ui
         except ImportError:
@@ -176,15 +246,19 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "restore":
             return _restore(adb, args)
 
+        if args.command == "scan" and args.all:
+            if args.serial or args.json or args.html:
+                print("error: --all scans every device and writes to --out-dir; drop -s/--json/--html",
+                      file=sys.stderr)
+                return 2
+            return _scan_all(args, iocs)
+
         result = run_scan(adb, iocs, ScanOptions(deep=args.deep), getattr(args, "only", None))
         print(format_text(result))
 
         if args.command == "scan":
-            if args.json:
-                write_json(result, args.json)
-            if args.html:
-                write_html(result, args.html)
-            return 1 if result.findings and max(f.severity for f in result.findings) >= Severity.HIGH else 0
+            _write_reports(result, args.json, args.html, args.redact)
+            return _scan_exit_code(result)
 
         plan = build_plan(result)
         if not plan:

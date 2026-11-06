@@ -1,6 +1,6 @@
 ---
 name: tvbox-botnet-scanner
-description: Install and run tvbox-botnet-scanner to detect and remove botnet malware (Vo1d, BADBOX, T95 Corejava) on Android TV boxes over ADB. Use when the user asks to check, scan or clean an Android TV box / IPTV box / set-top box for malware or botnets, or pastes https://github.com/khuzaiiii/tvbox-botnet-scanner.
+description: Install and run tvbox-botnet-scanner to detect and remove botnet malware (Vo1d, BADBOX, T95 Corejava, Pandora) on Android TV boxes over ADB. Use when the user asks to check, scan or clean an Android TV box / IPTV box / set-top box for malware or botnets, or pastes https://github.com/khuzaiiii/tvbox-botnet-scanner.
 ---
 
 # TV box botnet scanner
