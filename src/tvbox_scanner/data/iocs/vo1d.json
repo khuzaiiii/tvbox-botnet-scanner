@@ -118,19 +118,24 @@
     "meiboot.com"
   ],
   "ips": [
-    "3.132.75.97",
-    "3.146.93.253",
     "38.46.218.34",
     "38.46.218.36",
     "38.46.218.38",
     "38.46.218.39",
     "38.97.63.242",
-    "38.97.63.243",
-    "52.14.24.94",
-    "52.15.213.182"
+    "38.97.63.243"
   ],
   "device_models": [
     "R4",
     "KJ-SMART4KVIP"
-  ]
+  ],
+  "_excluded": {
+    "_note": "Rejected in review: Amazon AWS addresses from ThreatFox. Cloud IPs get reassigned to other customers, so they would later flag clean boxes and block innocent services. tools/update_iocs.py skips these.",
+    "ips": [
+      "3.132.75.97",
+      "3.146.93.253",
+      "52.14.24.94",
+      "52.15.213.182"
+    ]
+  }
 }

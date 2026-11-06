@@ -75,6 +75,8 @@ def main() -> int:
     doc = json.loads(args.file.read_text(encoding="utf-8"))
     fields = ("domains", "ips", "sha1", "sha256")
     current = {f: set(doc.get(f, [])) for f in fields}
+    # Values a reviewer rejected (e.g. reassignable cloud IPs); never re-added.
+    excluded = {f: set(doc.get("_excluded", {}).get(f, [])) for f in fields}
     new: dict[str, set[str]] = {f: set() for f in fields}
     families: Counter[str] = Counter()
     skipped: Counter[str] = Counter()
@@ -91,6 +93,8 @@ def main() -> int:
         parsed = parse_entry(entry)
         if parsed is None:
             skipped[f"unusable {entry.get('ioc_type')}"] += 1
+        elif parsed[1] in excluded[parsed[0]]:
+            skipped["excluded by reviewer"] += 1
         elif parsed[1] not in current[parsed[0]]:
             new[parsed[0]].add(parsed[1])
 
