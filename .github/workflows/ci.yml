@@ -13,8 +13,8 @@ jobs:
     name: Lint and type check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install
@@ -33,8 +33,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Install
@@ -51,8 +51,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install package (not editable)
@@ -64,8 +64,8 @@ jobs:
           tvbox-scan version
           tvbox-scan export-blocklist --format domains | head -3
           python -c "import tvbox_scanner.ui.app"
-          # adb is not installed on runners, so doctor must exit 1 and say so
-          if tvbox-scan doctor; then echo "doctor should fail without adb"; exit 1; fi
+          # some runner images ship adb, so point doctor at one that does not exist: it must exit 1
+          if tvbox-scan --adb no-such-adb doctor; then echo "doctor should fail without adb"; exit 1; fi
 
   install-scripts:
     name: Install script (${{ matrix.os }})
@@ -75,8 +75,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: scripts/install.sh
