@@ -29,6 +29,90 @@ Prompt penuh (Melayu dan English): [PROMPT.md](PROMPT.md). Masalah biasa: [docs/
 Model yang disebut dalam laporan malware: [docs/DEVICES.md](docs/DEVICES.md).
 
 Tool ini dipasang pada **komputer**, bukan pada TV. Komputer bercakap dengan box melalui ADB (Wi-Fi atau USB).
+Tak pernah guna AI agent? Ikut [tutorial di bawah](#tutorial-pasang-guna-ai-agent).
+
+## Tutorial: pasang guna AI agent
+
+Tutorial ini untuk orang yang tak biasa dengan terminal. AI agent akan taip arahan untuk anda; tugas anda
+cuma jawab soalan dan tekan butang pada TV.
+
+### Apa yang anda perlukan
+
+- **Komputer** Windows, macOS atau Linux, dalam rangkaian Wi-Fi yang sama dengan TV box (atau kabel USB
+  ke box).
+- **TV box Android** dan alat kawalan jauhnya. Tool ini tak berfungsi pada Samsung (Tizen), LG (webOS), Roku
+  atau Apple TV.
+- **AI agent yang boleh jalankan arahan** pada komputer anda, contohnya Claude Code, Codex CLI, Gemini CLI,
+  Cursor atau GitHub Copilot (mod agent). Chatbot biasa dalam browser tak boleh: ia tak boleh jalankan arahan.
+- Kira-kira 30 minit. Agent akan muat turun Python dan Android platform-tools kalau belum ada (agent akan
+  minta izin dulu).
+
+### Langkah 1: Buka agent dalam folder kosong
+
+Buat folder baru, contohnya `tvbox-scan`, kemudian buka AI agent di dalam folder itu. Untuk Claude Code:
+
+```bash
+mkdir tvbox-scan
+cd tvbox-scan
+claude
+```
+
+### Langkah 2: Tampal prompt
+
+Tukar `<JENAMA DAN MODEL>` kepada nama box anda (lihat pada kotak, pelekat bawah box, atau
+Settings → About), kemudian tampal:
+
+```
+Pasang dan jalankan https://github.com/khuzaiiii/tvbox-botnet-scanner untuk periksa TV box saya
+ada botnet atau tidak. Ikut AGENTS.md dalam repo itu langkah demi langkah.
+TV box saya: <JENAMA DAN MODEL>
+```
+
+Versi English dan versi lebih panjang ada dalam [PROMPT.md](PROMPT.md).
+
+### Langkah 3: Jawab soalan agent
+
+Agent akan ikut [AGENTS.md](AGENTS.md). Ini yang biasanya berlaku, dan apa yang anda buat:
+
+| Agent buat | Anda buat |
+|---|---|
+| Semak model box anda boleh diperiksa atau tidak | Beri jenama dan model, atau gambar skrin About |
+| Minta izin muat turun Python, adb dan tool ini | Jawab "ya" kalau setuju |
+| Pasang tool, jalankan `tvbox-scan doctor` | Tunggu |
+| Terangkan cara hidupkan **Developer options** dan **USB debugging** pada box anda | Ikut satu langkah demi satu pada TV, beritahu apa yang anda nampak |
+| Minta alamat IP box | Baca dari Settings → Network pada TV |
+| Sambung ke box | Pada TV, tanda **Always allow** dan tekan **OK** pada prompt *Allow USB debugging?* |
+| Minta izin scan (baca sahaja, tiada perubahan) | Jawab "ya" |
+| Terangkan keputusan dan setiap penemuan | Baca, tanya kalau tak faham |
+| Tunjuk pelan pembuangan (dry run, tiada perubahan) | Semak senarai |
+| Minta izin buang, dan tanya **berasingan** untuk langkah `/system` | Jawab "ya" hanya kalau anda faham risikonya |
+| Reboot box, scan semula, banding keputusan | Beritahu bila box dah kembali ke skrin utama |
+| Beri senarai sekatan untuk router, ingatkan matikan debugging | Matikan USB / Network debugging pada TV |
+
+### Peraturan untuk anda
+
+- **Jangan beri kata laluan** (Wi-Fi, Google, router) kepada agent. Tool ini tak perlukannya.
+- **Jangan setuju "buang" kalau tak faham.** Scan dan dry run tak mengubah apa-apa; anda boleh berhenti di situ.
+- **Langkah `/system` boleh menyebabkan box tak boleh boot (bootloop).** Semua fail di-backup ke folder
+  `backups/` dulu, dan `restore` boleh pulangkannya, tapi hanya kalau box masih boleh disambung.
+- **Folder `backups/` mengandungi malware sebenar.** Jangan buka, hantar atau muat naik fail di dalamnya.
+- **"Tiada padanan IOC" tidak bermaksud box bersih.** Ia hanya bermaksud tiada tanda yang dikenali dijumpai.
+- Kalau agent buat sesuatu yang anda tak minta (contohnya root box, flash firmware, atau tambah `--yes` tanpa
+  tanya), suruh ia berhenti.
+
+### Kalau tersekat
+
+- Agent tak jumpa box: semak box dan komputer dalam Wi-Fi yang sama, dan prompt pada TV dah diterima.
+- Prompt *Allow USB debugging?* tak muncul: matikan dan hidupkan semula USB debugging, kemudian minta agent
+  sambung semula.
+- Mesej lain: minta agent semak [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). Kalau masih gagal,
+  [buka issue](https://github.com/khuzaiiii/tvbox-botnet-scanner/issues/new?template=bug.yml) dengan apa yang
+  dipaparkan.
+
+### Pilihan: skill untuk Claude Code
+
+Kalau anda selalu guna Claude Code, salin `skills/tvbox-botnet-scanner/` ke `~/.claude/skills/`. Selepas itu
+cukup taip "periksa TV box saya untuk botnet" dan Claude akan ikut playbook yang sama.
 
 ## Pasang sendiri
 
