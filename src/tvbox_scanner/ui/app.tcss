@@ -1,0 +1,190 @@
+Screen {
+    background: $background;
+}
+
+.title {
+    text-style: bold;
+    color: $accent;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+.hint {
+    color: $text-muted;
+    padding: 0 1;
+}
+
+.row {
+    height: auto;
+}
+
+.buttons {
+    padding: 0 1;
+    height: 3;
+}
+
+.buttons Button {
+    margin-right: 1;
+}
+
+/* ---------- device picker ---------- */
+
+#device-box {
+    width: 80;
+    max-width: 100%;
+    height: auto;
+    margin: 2 4;
+    padding: 1 2;
+    border: round $primary;
+    background: $surface;
+}
+
+#devices {
+    height: auto;
+    max-height: 12;
+    min-height: 3;
+    margin: 1 0;
+    border: tall $panel;
+}
+
+#device-msg {
+    margin-bottom: 1;
+}
+
+#host {
+    width: 1fr;
+}
+
+/* ---------- scan ---------- */
+
+#device-bar {
+    height: 1;
+    padding: 0 2;
+    background: $boost;
+}
+
+#scan-body {
+    height: 1fr;
+}
+
+#steps {
+    width: 34;
+    padding: 1;
+    border: round $primary;
+    margin: 0 0 0 1;
+}
+
+.step {
+    height: 1;
+    margin-bottom: 1;
+}
+
+#scan-progress {
+    margin-top: 1;
+}
+
+#findings-pane {
+    width: 1fr;
+    margin: 0 1;
+}
+
+#findings {
+    height: 2fr;
+    border: round $primary;
+}
+
+#detail-box {
+    height: 1fr;
+    border: round $panel;
+    padding: 0 1;
+}
+
+#verdict {
+    height: auto;
+    min-height: 3;
+    margin: 0 1;
+    padding: 0 2;
+    border: heavy $panel;
+}
+
+#verdict.verdict-clean {
+    border: heavy $success;
+    color: $success;
+}
+
+#verdict.verdict-suspicious {
+    border: heavy $warning;
+    color: $warning;
+}
+
+#verdict.verdict-infected {
+    border: heavy $error;
+    color: $error;
+}
+
+/* ---------- remove ---------- */
+
+#remove-body {
+    height: 1fr;
+}
+
+#plan-pane {
+    width: 1fr;
+    padding: 0 1;
+    border: round $primary;
+    margin-left: 1;
+}
+
+.warn {
+    color: $error;
+    border-left: thick $error;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+.switch-row {
+    height: 3;
+}
+
+.switch-row Label {
+    padding: 1 1;
+}
+
+#plan {
+    height: 1fr;
+    border: tall $panel;
+}
+
+#action-detail-box {
+    height: 9;
+    border: round $panel;
+    padding: 0 1;
+}
+
+#log-pane {
+    width: 1fr;
+    padding: 0 1;
+    border: round $primary;
+    margin: 0 1;
+}
+
+#log {
+    height: 1fr;
+    background: $surface;
+}
+
+/* ---------- confirm ---------- */
+
+ConfirmModal {
+    align: center middle;
+    background: $background 60%;
+}
+
+#confirm-box {
+    width: 70;
+    max-width: 95%;
+    height: auto;
+    padding: 1 2;
+    border: thick $error;
+    background: $surface;
+}

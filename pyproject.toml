@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tvbox-botnet-scanner"
+version = "0.1.0"
+description = "Scan and remediate botnet malware (Vo1d, BADBOX, T95 Corejava) on Android TV boxes over ADB"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Khuzaii" }]
+dependencies = []
+
+[project.optional-dependencies]
+ui = ["textual>=8.2,<9"]
+
+[project.scripts]
+tvbox-scan = "tvbox_scanner.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tvbox_scanner = ["ui/*.tcss", "data/iocs/*.json", "data/iocs/*.md"]

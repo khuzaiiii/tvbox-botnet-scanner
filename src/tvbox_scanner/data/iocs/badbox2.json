@@ -1,0 +1,86 @@
+{
+  "family": "BADBOX 2.0",
+  "sources": [
+    "https://github.com/deepfield/public-research/tree/854e703/ipmoyu",
+    "https://www.humansecurity.com/learn/blog/satori-threat-intelligence-disruption-badbox-2-0/"
+  ],
+  "packages": [
+    {
+      "name": "com.android.tigertv",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    },
+    {
+      "name": "com.android.tigersport",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    },
+    {
+      "name": "com.android.mioplus",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    },
+    {
+      "name": "com.android.miosport",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    },
+    {
+      "name": "com.android.vo_vivo",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    },
+    {
+      "name": "com.android.vo_fixture",
+      "severity": "HIGH",
+      "note": "Grey-market IPTV app that downloads the BADBOX 2.0 / MoYu residential-proxy module at runtime (Nokia Deepfield)"
+    }
+  ],
+  "files": [],
+  "sha1": [],
+  "sha256": [
+    "21cccd01d10127c3c91442747c351d91ba60de004665986b420a092214bca837",
+    "5638154727931471ae557cd89953e9686af10fa35c21ee30cee4208ecc76d662",
+    "8226f44581a8bd9f1e9119a56929b9df66d725265076b7d9cdd96e8b132d8427",
+    "96a48ef53a1ed4f9ffada09b82cab9d965a61a2d3b70490a46821d8102d811fd"
+  ],
+  "process_names": [],
+  "domains": [
+    "a1.ishano456.sbs",
+    "a1.ty4523.space",
+    "a1.ty54fgd435.my",
+    "a1.ue886578433.online",
+    "a1.vrr8345.site",
+    "a1.xmsae.sbs",
+    "a1.xshaon123.sbs",
+    "appdload.mpfcms.com",
+    "edisajalsjfdfh.shop",
+    "mcm5566.bookabcgames.com",
+    "miotvtop.hdwcam.com",
+    "mpfcms.mio-tvplus.com",
+    "mtvp.hdwcam.com",
+    "newsvxc.shopstoreboutique.com",
+    "t1.ishano456.sbs",
+    "t1.xmsae.sbs",
+    "t1.xshaon123.sbs",
+    "task.mymoyu.shop",
+    "terrtest.oss-cn-hangzhou.aliyuncs.com",
+    "testcf114.bookabcgames.com",
+    "tigertvdli1.jopstop.com",
+    "xc.mpfcms.com"
+  ],
+  "ips": [
+    "128.14.181.46",
+    "128.14.202.210",
+    "128.14.207.14",
+    "128.14.207.34",
+    "128.14.210.58",
+    "144.217.243.201",
+    "165.154.202.29",
+    "172.96.114.6",
+    "98.98.71.19",
+    "98.98.71.20"
+  ],
+  "device_models": [],
+  "_todo": "HUMAN's report lists 109 C2 domains and affected models; its site blocks automated download. Add them by hand from the report's IoC section, or via tools/update_iocs.py (ThreatFox tag BADBOX)."
+}

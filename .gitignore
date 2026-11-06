@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Scan output and device backups (may contain malware samples)
+reports/
+backups/
+*.apk
+
+# Local Claude Code settings and installed skills
+.claude/
